@@ -161,7 +161,7 @@ function calculateByteCount(obj, schema) {
 
 function encode(json, schema, schemaIsArray) {
   var obj = schemaIsArray ? [json] : json;
-  var buffer = Buffer.allocUnsafe(calculateByteCount(obj, schema));
+  var buffer = new Buffer(calculateByteCount(obj, schema));
   var refStack = [ obj ];
   byteOffset = 0;
 
@@ -182,7 +182,7 @@ function encode(json, schema, schemaIsArray) {
 }
 
 function decode(buffer, schema, schemaIsArray) {
-  if (buffer instanceof ArrayBuffer) { buffer = Buffer.from(buffer); }
+  if (buffer instanceof ArrayBuffer) { buffer = new Buffer(buffer); }
   
   var refStack = [ schemaIsArray ? [] : {} ];
   var arrayLengthStack = [];

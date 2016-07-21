@@ -184,7 +184,7 @@ exports.runBenchmark = function(schema, val) {
 
   console.log("--------------------------------------");
 
-  console.log("SchemaPack Byte Count: " + schemapackEncoded.byteLength);
+  console.log("SchemaPack Byte Count: " + schemapackEncoded.length);
   console.log("JSON Byte Count: " + jsonEncoded.length);
   if (msgpack) { console.log("MsgPack Byte Count: " + msgPackEncoded.length); }
   if (protobuf) { console.log("ProtoBuf Byte Count: " + protobufEncoded.byteLength); }

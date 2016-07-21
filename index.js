@@ -3,3 +3,5 @@ var tests = require('./tests');
 
 tests.runTestSuite();
 tests.runBenchmark(tests.playerSchema, tests.player);
+tests.runBenchmark(tests.largeObjectSchema, tests.largeObject);
+tests.runBenchmark(tests.complexArraySchema, tests.complexArray);
