@@ -1,10 +1,12 @@
 'use strict';
+var Benchmark = require('benchmark');
 
-var schemapack, msgpack, protobuf;
+var schemapack, msgpack, protobuf, lzstring;
 
 schemapack = require('./schemapack');
-// msgpack = require("msgpack-lite"); // Uncomment if you `npm install msgpack-lite` to include in the benchmark
+msgpack = require("msgpack-lite"); // Uncomment if you `npm install msgpack-lite` to include in the benchmark
 // protobuf = require("protobufjs"); // Uncomment if you `npm install protobufjs` to include in the benchmark
+// lzstring = require('lz-string'); // Uncomment if you `npm install lz-string` to include in the benchmark
 
 exports.largeObjectSchema = {
   damage: "int8",
@@ -152,23 +154,34 @@ exports.runTestSuite = function() {
   else { console.log("\x1b[31mTest Suite Failure!\x1b[0m"); }
 }
 
-exports.benchmark = function(testName, fn) {
-  console.time(testName);
-  for (var i = 0; i < 100000; i++) { fn(); }
-  console.timeEnd(testName);
+function byteCount(testName, len, baseLen) {
+  console.log(testName + " Byte Count: " + len + (baseLen ? ', ' + Math.round(len / baseLen * 100) + '%' : ''));
 }
 
 exports.runBenchmark = function(schema, val) {
+  console.log('###############################');
   console.log("Benchmark beginning..");
 
   var built = schemapack.build(schema);
-  if (protobuf) { var pbJS = protobuf.loadJson(playerSchemaPB); }
-  if (protobuf) { var pbMsg = pbJS.build("Message"); }
+  if (protobuf) {
+    var pbJS = protobuf.loadJson(playerSchemaPB);
+    var pbMsg = pbJS.build("Message");
+  }
 
-  exports.benchmark('SchemaPack Encode', function() { built.encode(val); });
-  exports.benchmark('JSON Encode', function() { JSON.stringify(val); });
-  if (msgpack) { exports.benchmark('MsgPack Encode', function() { msgpack.encode(val); }); }
-  if (protobuf) { exports.benchmark('ProtoBuf Encode Player', function() { pbMsg.encode(exports.player).toArrayBuffer(); }); }
+  var suiteEncode = new Benchmark.Suite;
+  suiteEncode.add('JSON Encode', function() { JSON.stringify(val); })
+            .add('SchemaPack Encode', function() { built.encode(val); });
+  if (msgpack) suiteEncode.add('MsgPack Encode', function() { msgpack.encode(val); });
+  if (protobuf) suiteEncode.add('ProtoBuf Encode', function() { pbMsg.encode(exports.player).toArrayBuffer(); });
+  if (lzstring) suiteEncode.add('LZ-String Encode', function() { lzstring.compressToBase64(JSON.stringify(val)); });
+  // add listeners
+  suiteEncode.on('cycle', function(event) {
+    console.log(String(event.target));
+  })
+  .on('complete', function() {
+    console.log('Fastest is ' + this.filter('fastest').map('name'));
+  })
+  .run({ 'async': false });
 
   console.log("--------------------------------------");
 
@@ -176,18 +189,30 @@ exports.runBenchmark = function(schema, val) {
   var jsonEncoded = JSON.stringify(val);
   if (msgpack) { var msgPackEncoded = msgpack.encode(val); }
   if (protobuf) { var protobufEncoded = pbMsg.encode(exports.player).toArrayBuffer(); }
+  if (lzstring) { var lzstringEncoded = lzstring.compressToBase64(JSON.stringify(val)); }
 
-  exports.benchmark('SchemaPack Decode', function() { built.decode(schemapackEncoded); });
-  exports.benchmark('JSON Decode', function() { JSON.parse(jsonEncoded); });
-  if (msgpack) { exports.benchmark('MsgPack Decode', function() { msgpack.decode(msgPackEncoded); }); }
-  if (protobuf) { exports.benchmark('ProtoBuf Decode Player', function() { pbMsg.decode(protobufEncoded); }); }
+  var suiteDecode = new Benchmark.Suite;
+  suiteDecode.add('JSON Decode', function() { JSON.parse(jsonEncoded); })
+            .add('SchemaPack Decode', function() { built.decode(schemapackEncoded); });
+  if (msgpack) suiteDecode.add('MsgPack Decode', function() { msgpack.decode(msgPackEncoded); });
+  if (protobuf) suiteDecode.add('ProtoBuf Decode', function() { pbMsg.decode(protobufEncoded); });
+  if (lzstring) suiteDecode.add('LZ-String Decode', function() { JSON.parse(lzstring.decompressFromBase64(lzstringEncoded)); });
+  // add listeners
+  suiteDecode.on('cycle', function(event) {
+    console.log(String(event.target));
+  })
+  .on('complete', function() {
+    console.log('Fastest is ' + this.filter('fastest').map('name'));
+  })
+  .run({ 'async': false });
 
   console.log("--------------------------------------");
 
-  console.log("SchemaPack Byte Count: " + schemapackEncoded.length);
-  console.log("JSON Byte Count: " + jsonEncoded.length);
-  if (msgpack) { console.log("MsgPack Byte Count: " + msgPackEncoded.length); }
-  if (protobuf) { console.log("ProtoBuf Byte Count: " + protobufEncoded.byteLength); }
+  byteCount("JSON", jsonEncoded.length);
+  byteCount("SchemaPack", schemapackEncoded.length, jsonEncoded.length);
+  if (msgpack) { byteCount("MsgPack", msgPackEncoded.length, jsonEncoded.length); }
+  if (protobuf) { byteCount("ProtoBuf", protobufEncoded.byteLength, jsonEncoded.length); }
+  if (lzstring) { byteCount("LZ-String", lzstringEncoded.length, jsonEncoded.length); }
 }
 
 // Used pbjs CLI to create this from .proto file for the player schema
