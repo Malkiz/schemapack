@@ -158,6 +158,21 @@ function byteCount(testName, len, baseLen) {
   console.log(testName + " Byte Count: " + len + (baseLen ? ', ' + Math.round(len / baseLen * 100) + '%' : ''));
 }
 
+function runSuite(suite) {
+  suite.on('cycle', function(event) {
+    console.log(String(event.target));
+  })
+  .on('complete', function() {
+    var fastest = this.filter('fastest');
+    console.log('Fastest is ' + fastest.map('name'));
+    var fhz = fastest.map('hz');
+    Array.prototype.forEach.call(this, function(item) {
+      console.log(item['name'] + ' : ' + Math.round(fhz / item['hz'] * 100) + '%');
+    });
+  })
+  .run({ 'async': false });
+}
+
 exports.runBenchmark = function(schema, val) {
   console.log('###############################');
   console.log("Benchmark beginning..");
@@ -174,14 +189,7 @@ exports.runBenchmark = function(schema, val) {
   if (msgpack) suiteEncode.add('MsgPack Encode', function() { msgpack.encode(val); });
   if (protobuf) suiteEncode.add('ProtoBuf Encode', function() { pbMsg.encode(exports.player).toArrayBuffer(); });
   if (lzstring) suiteEncode.add('LZ-String Encode', function() { lzstring.compressToBase64(JSON.stringify(val)); });
-  // add listeners
-  suiteEncode.on('cycle', function(event) {
-    console.log(String(event.target));
-  })
-  .on('complete', function() {
-    console.log('Fastest is ' + this.filter('fastest').map('name'));
-  })
-  .run({ 'async': false });
+  runSuite(suiteEncode);
 
   console.log("--------------------------------------");
 
@@ -197,14 +205,7 @@ exports.runBenchmark = function(schema, val) {
   if (msgpack) suiteDecode.add('MsgPack Decode', function() { msgpack.decode(msgPackEncoded); });
   if (protobuf) suiteDecode.add('ProtoBuf Decode', function() { pbMsg.decode(protobufEncoded); });
   if (lzstring) suiteDecode.add('LZ-String Decode', function() { JSON.parse(lzstring.decompressFromBase64(lzstringEncoded)); });
-  // add listeners
-  suiteDecode.on('cycle', function(event) {
-    console.log(String(event.target));
-  })
-  .on('complete', function() {
-    console.log('Fastest is ' + this.filter('fastest').map('name'));
-  })
-  .run({ 'async': false });
+  runSuite(suiteDecode);
 
   console.log("--------------------------------------");
 
