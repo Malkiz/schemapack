@@ -36,7 +36,7 @@ var setStringEncoding = function(stringEncoding) {
 };
 
 function getVarUIntByteLength(value) {
-  return Math.floor(Math.log(value) / Math.log(128)) + 1;
+  return Math.floor(Math.log(value || 1) / Math.log(128)) + 1;
 }
 
 function getVarIntByteLength(value) {
@@ -73,7 +73,7 @@ function readVarInt(buffer) {
 }
 
 function getStringByteLength(str) {
-  var s = str.length;
+  var s = (str || '').length;
 
   if (strEnc === "ascii") { return s; }
   
@@ -90,7 +90,7 @@ function getStringByteLength(str) {
 function writeString(buffer, val) {
   var len = getStringByteLength(val);
   writeVarUInt(buffer, len);
-  byteOffset += buffer.write(val, byteOffset, len, strEnc);
+  byteOffset += buffer.write(val || '', byteOffset, len, strEnc);
 }
 
 function readString(buffer, strLen) {
@@ -121,7 +121,7 @@ function getArrayByteCount(arr, key, schema, i) {
 }
 
 function writeArray(arr, key, repeatedDataType, buffer) {
-  var repeatCount = arr.length - key;
+  var repeatCount = (arr || []).length - key;
 
   if (repeatCount > 0) {
     for (var j = key; j < arr.length; j++) {
@@ -146,8 +146,8 @@ function calculateByteCount(obj, schema) {
 
     switch (dataType) {
       case "__arrend": { byteCount += getArrayByteCount(refStack.pop(), key, schema, i); break; }
-      case "__obj": { refStack.push(peek(refStack)[key]); break; }
-      case "__arr": { refStack.push(peek(refStack)[key]); break; }
+      case "__obj": { refStack.push(peek(refStack)[key] || {}); break; }
+      case "__arr": { refStack.push(peek(refStack)[key] || []); break; }
       case "string":
       case "varuint":
       case "varint": { byteCount += dynamicByteCount[dataType](peek(refStack)[key]); break; }
@@ -168,12 +168,13 @@ function encode(json, schema, schemaIsArray) {
   for (var i = 0; i < schema.length; i += 2) {
     var key = schema[i];
     var dataType = schema[i + 1];
-    var val = peek(refStack)[key];
+    var parent = peek(refStack);
+    var val = parent && parent[key];
 
     switch (dataType) {
       case "__arrend": { writeArray(refStack.pop(), key, schema[i - 1], buffer); break; }
-      case "__arr": { writeVarUInt(buffer, val.length); refStack.push(val); break; }
-      case "__obj": { refStack.push(val); break; }
+      case "__arr": { writeVarUInt(buffer, (val || []).length); refStack.push(val); break; }
+      case "__obj": { refStack.push(val || {}); break; }
       case "__objend": { refStack.pop(); break; }
       default: { writeTypeDict[dataType](buffer, val); break; }
     }
@@ -279,7 +280,7 @@ function getFlattened(schema, schemaIsArray) {
         var dataType = val.trim().toLowerCase();
         if (aliasTypes.hasOwnProperty(dataType)) { dataType = aliasTypes[dataType]; }
         if (everyType.indexOf(dataType) > -1) { flattened.push(key, dataType); }
-        else { throw new TypeError("Invalid data type in schema."); }
+        else { throw new TypeError("Invalid data type in schema: " + key + " -> " + dataType); }
       }
     }
   }
