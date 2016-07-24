@@ -4,7 +4,9 @@
   "description": "Efficiently encode your JavaScript objects in to compact byte buffers and then decode them back in to JavaScript objects on the receiver. Integrates very well with WebSockets.",
   "main": "schemapack.js",
   "scripts": {
-    "test": "node --harmony index.js"
+    "test": "node --harmony index.js",
+    "build": "browserify index.js > build/test.js && browserify schemapack.js > build/schemapack.js",
+    "postbuild": "java -jar closure-compiler/compiler.jar --compilation_level ADVANCED --js_output_file=build/schemapack.min.js build/schemapack.js"
   },
   "repository": {
     "type": "git",

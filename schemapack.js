@@ -56,13 +56,13 @@ function writeVarInt(buffer, value) {
 }
 
 function readVarUInt(buffer) {
-  var val = 0, i = 0, byte;
+  var val = 0, i = 0, _byte;
 
   do {
-    byte = buffer[byteOffset++];
-    val |= (byte & 127) << (7 * i);
+    _byte = buffer[byteOffset++];
+    val |= (_byte & 127) << (7 * i);
     i++;
-  } while (byte & 128);
+  } while (_byte & 128);
 
   return val;
 }
@@ -216,7 +216,7 @@ var constantByteCount = {
   "int32": 4,
   "uint32": 4,
   "float32": 4,
-  "float64": 8,
+  "float64": 8
 };
 
 var dynamicByteCount = {
