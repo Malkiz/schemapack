@@ -1,5 +1,8 @@
 'use strict';
 var Benchmark = require('benchmark');
+if (typeof window !== 'undefined') {
+  window.Benchmark = Benchmark;
+}
 
 var schemapack, msgpack, protobuf, lzstring;
 
@@ -150,7 +153,7 @@ exports.runTestSuite = function() {
   testSuite.push(exports.testValues(exports.playerSchema, exports.player));
   testSuite.push(exports.testValues(exports.complexArraySchema, exports.complexArray));
   
-  if (testSuite.every(e => e === true)) { console.log("\x1b[32mAll Tests Passed!\x1b[0m"); } 
+  if (testSuite.every(function(e) { return e === true; })) { console.log("\x1b[32mAll Tests Passed!\x1b[0m"); } 
   else { console.log("\x1b[31mTest Suite Failure!\x1b[0m"); }
 }
 
