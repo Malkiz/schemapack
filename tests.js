@@ -16,7 +16,7 @@ exports.largeObjectSchema = {
   alive: "boolean",
   x: "int8",
   y: "int8",
-  coords: [ ["int16"], "int8" ],
+  coords: [ "uint8" ],
   name: "string",
   data: {
     apple: 'int8',
@@ -30,7 +30,7 @@ exports.largeObject = {
   alive: false,
   x: 23,
   y: 44,
-  coords: [ [6], 7 ],
+  coords: [ 7 ],
   name: 'david',
   data: {
     apple: 3,
@@ -42,14 +42,14 @@ exports.largeObject = {
 exports.playerSchema = {
   health: "varuint",
   jumping: "boolean",
-  position: [ "float32" ],
+  position: [ "int16" ],
   attributes: { str: 'uint8', agi: 'uint8', int: 'uint8' }
 };
 
 exports.player = {
   health: 4000,
   jumping: false,
-  position: [ 322.572, 159.281, 23.775 ],
+  position: [ -540, 343, 1201 ],
   attributes: { str: 87, agi: 42, int: 22 }
 };
 
@@ -73,7 +73,8 @@ exports.complexArraySchema = [
       e: "int32"
     }
   },
-  "uint16"
+  ["uint16", "int8"],
+  "int8"
 ];
 
 exports.complexArray = [
@@ -81,7 +82,7 @@ exports.complexArray = [
   false,
   23,
   5555,
-  [ true, [7, [-866, 4453, 523423434234], 1, 100, 10000 ], "hi" ],
+  [ true, [7, [-866, 4453, 5234234, 4543434, 4544666], 1, 100, 10000 ], "hi" ],
   { 
     points: [ 3434, 546, 1212, 66 ],
     name: "lilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilIlilI"
@@ -90,16 +91,23 @@ exports.complexArray = [
   {
     otherDataTypes: {
       a: 55,
-      b: -534593845.43242342342,
-      c: -5300,
+      b: -53845.43242342342,
+      c: -5300, 
       d: 15000,
-      e: 2000000000
+      e: 2000000
     }
   },
+  [ 22, 5, 5, 5 ],
   1,
   2,
   3
 ];
+
+exports.singleVarSchema = "string";
+exports.singleVar = "hello, how are you?";
+
+exports.singleConsSchema = "bool";
+exports.singleCons = true;
 
 function bothEqual(obj1, obj2) {
   for (var prop in obj1) {
@@ -111,7 +119,7 @@ function bothEqual(obj1, obj2) {
       if (item2 == undefined || item2 == null) { return false; }
       
       if (typeof item1 == "object") {
-        bothEqual(item1, item2);
+        if (!bothEqual(item1, item2)) { return false; }
       } else {
         if (typeof item1 === "number" || typeof item2 === "number") {
           if (Math.abs(item1 - item2) > .01) { return false; } // Floating point epsilon
@@ -142,16 +150,14 @@ exports.testValues = function(schema, val) {
   return runTest(built.decode(built.encode(val)), val);
 }
 
-exports.runTestObj = function() {
-  exports.testValues(exports.objSchemaOne, exports.objOne);
-}
-
 exports.runTestSuite = function() {
   var testSuite = [];
 
   testSuite.push(exports.testValues(exports.largeObjectSchema, exports.largeObject));
   testSuite.push(exports.testValues(exports.playerSchema, exports.player));
   testSuite.push(exports.testValues(exports.complexArraySchema, exports.complexArray));
+  testSuite.push(exports.testValues(exports.singleVarSchema, exports.singleVar));
+  testSuite.push(exports.testValues(exports.singleConsSchema, exports.singleCons));
   
   if (testSuite.every(function(e) { return e === true; })) { console.log("\x1b[32mAll Tests Passed!\x1b[0m"); } 
   else { console.log("\x1b[31mTest Suite Failure!\x1b[0m"); }
@@ -236,7 +242,7 @@ var playerSchemaPB = {
       "id": 2
     }, {
       "rule": "repeated",
-      "type": "float",
+      "type": "int32",
       "name": "position",
       "id": 3
     }, {
